@@ -12,6 +12,13 @@ nginx后面的业务有时是隐藏的：
 
 怎么访问这些隐藏的业务呢？这就需要今天的主角登场了--Host碰撞技术
 
+## 技术及复现详情
+
+[Host碰撞原理及复现（含利用工具）](https://mp.weixin.qq.com/s/uH40OJ4ev0rpuzDLMn7x-A)
+
+欢迎关注 **我不是Hacker** 公众号，不定期做一些分享
+![](http://wx.lovebear.cloud/nohacker.png)
+
 ## 使用示例
 
 ```
