@@ -55,10 +55,10 @@ func goScan(taskChan chan [2]string, wg *sync.WaitGroup){
 				result.Title = title
 				resultStr, _ := json.Marshal(result)
 				if len(title) > 0{
-					elog.Info(fmt.Sprintf("Uri: %s, Host: %s --> %s", uri, host, title))
+					elog.Notice(fmt.Sprintf("Uri: %s, Host: %s --> %s", uri, host, title))
 					utils.WriteLine(string(resultStr), *vars.OutFile)
 				}else{
-					elog.Warn(fmt.Sprintf("Uri: %s, Host: %s not reached", uri, host))
+					elog.Warn(fmt.Sprintf("Uri: %s, Host: %s No title found", uri, host))
 				}
 			}
 		}
