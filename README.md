@@ -26,7 +26,7 @@ nginx后面的业务有时是隐藏的：
 ```
 
 ```
-./hostscan -D input/hosts.txt -I input/ips.txt -o out/output.txt -T 5 -t 10
+./hostscan -D input/hosts.txt -I input/ips.txt -O out/output.txt -T 5 -t 10
 ```
 
 ## 使用说明
