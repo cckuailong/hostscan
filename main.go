@@ -7,11 +7,15 @@ import (
 	"hostscan/vars"
 	"flag"
 	"fmt"
+	"os"
 )
 
 
 func main(){
 	utils.Banner()
+
+	utils.SetUlimitMax()
+
 	flag.Parse()
 	if *vars.Version {
 		elog.Info(fmt.Sprintf("Current hostscan version: %s", vars.VersionInfo))
@@ -44,6 +48,10 @@ func main(){
 	if len(vars.Hosts) == 0 {
 		elog.Error("No Host Found! Please use -d/-D to input single host or hosts in file")
 		return
+	}
+	exist,_ := utils.PathExists(*vars.OutFile)
+	if exist{
+		_ = os.Remove(*vars.OutFile)
 	}
 
 	core.Scan()
