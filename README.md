@@ -1,25 +1,22 @@
 # hostscan
 
-**自动化**Host碰撞工具，帮助红队快速扩展网络边界，获取更多目标点
+[中文Readme](./README_zh.md)
 
-## 背景
+## What is hostscan
 
-很多时候，访问目标网站时，使用其真实IP无法访问，只有域名才能访问到后端业务服务。这是因为反代服务器（如nginx）配置了禁止直接IP访问。
+**Auto** Host Collsion Tool, In order to help RedTeam quickly expand the network boundary and access more target points
 
-nginx后面的业务有时是隐藏的：
-1. 不开放到外网的业务，如测试业务
-2. 原来DNS解析到外网，但是后来删除了A记录（nginx后的业务没删除，转移到了内网访问）
+## Why hostscan ?? 
 
-怎么访问这些隐藏的业务呢？这就需要今天的主角登场了--Host碰撞技术
+In many cases, when accessing the target website, it cannot be accessed using its real IP, and only the domain name can access the back-end business services. This is because the Reverse proxy server (such as nginx) is configured to prohibit direct IP access.
 
-## 技术及复现详情
+The business behind nginx is sometimes hidden:
+1. Services that are not open to external networks, such as test services
+2. The original DNS was resolved to the external network, but the A record was later deleted (the business after nginx was not deleted and transferred to the internal network access)
 
-[Host碰撞原理及复现（含利用工具）](https://mp.weixin.qq.com/s/uH40OJ4ev0rpuzDLMn7x-A)
+How to access these hidden businesses? This requires the appearance of today's protagonist-Host collision technology
 
-欢迎关注 **我不是Hacker** 公众号，不定期做一些分享
-![](http://wx.lovebear.cloud/nohacker.png)
-
-## 使用示例
+## Example
 
 ```
 ./hostscan -d 127.0.0.1 -i 1.1.1.1
@@ -29,9 +26,9 @@ nginx后面的业务有时是隐藏的：
 ./hostscan -D input/hosts.txt -I input/ips.txt -O out/output.txt -T 5 -t 10
 ```
 
-## 使用说明
+## Usage
 
-请下载release中对应平台的版本运行
+Please download the version of the corresponding platform in the release
 
 ```
 ./hostscan --help
@@ -58,10 +55,10 @@ Usage of ./main:
 
 ```
 
-## 运行截图
+## Demo
 
 ![demo](./images/demo.png)
 
-## 参考链接
+## References
 
 [Fofapro 的 Hosts_scan](https://github.com/fofapro/Hosts_scan)
