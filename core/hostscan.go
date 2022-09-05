@@ -1,33 +1,35 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"hostscan/elog"
 	"hostscan/models"
 	"hostscan/utils"
 	"hostscan/vars"
 	"regexp"
+	"strings"
 	"sync"
-	"encoding/json"
+
 	"github.com/schollz/progressbar/v3"
 )
 
-func getTitle(body string) string{
-	re := regexp.MustCompile(`<title>(.*?)</title>`)
+func getTitle(body string) string {
+	re := regexp.MustCompile(`<title>([\s\S]*?)</title>`)
 	match := re.FindStringSubmatch(body)
-	if match != nil && len(match)>1{
-		return match[1]
-	}else{
+	if match != nil && len(match) > 1 {
+		return strings.TrimSpace(match[1])
+	} else {
 		return ""
 	}
 }
 
-func getTasks() [][2]string{
+func getTasks() [][2]string {
 	tasks := [][2]string{}
-	for _, ip := range vars.Ips{
-		for _, scheme := range vars.Schemes{
+	for _, ip := range vars.Ips {
+		for _, scheme := range vars.Schemes {
 			uri := fmt.Sprintf("%s://%s", scheme, ip)
-			for _, host := range vars.Hosts{
+			for _, host := range vars.Hosts {
 				tasks = append(tasks, [2]string{uri, host})
 			}
 		}
@@ -36,7 +38,7 @@ func getTasks() [][2]string{
 	return tasks
 }
 
-func goScan(taskChan chan [2]string, wg *sync.WaitGroup){
+func goScan(taskChan chan [2]string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
 		select {
@@ -54,10 +56,10 @@ func goScan(taskChan chan [2]string, wg *sync.WaitGroup){
 				result.Host = host
 				result.Title = title
 				resultStr, _ := json.Marshal(result)
-				if len(title) > 0{
+				if len(title) > 0 {
 					elog.Notice(fmt.Sprintf("Uri: %s, Host: %s --> %s", uri, host, title))
 					utils.WriteLine(string(resultStr), *vars.OutFile)
-				}else{
+				} else {
 					elog.Warn(fmt.Sprintf("Uri: %s, Host: %s No title found", uri, host))
 				}
 			}
@@ -65,7 +67,7 @@ func goScan(taskChan chan [2]string, wg *sync.WaitGroup){
 	}
 }
 
-func Scan(){
+func Scan() {
 	tasks := getTasks()
 	wg := sync.WaitGroup{}
 	totalTask := len(tasks)
