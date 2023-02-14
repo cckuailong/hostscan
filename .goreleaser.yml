@@ -26,7 +26,6 @@ builds:
       - darwin
     goarch:
       - amd64
-      - arm64
     main: ./main.go
     binary: hostscan
     ldflags: -s -w
