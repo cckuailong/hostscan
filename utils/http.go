@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/tls"
+	"fmt"
 	"hostscan/vars"
 	"io/ioutil"
 	"net/http"
@@ -25,7 +26,15 @@ func GetHttpBody(url, host string) string{
 	}
 
 	reqest.Host = host
-	reqest.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:12.0) Gecko/20100101 Firefox/12.0")
+
+	var ua string
+	if *vars.IsRandUA == true {
+		ua = RandUA()
+	} else{
+		ua = fmt.Sprintf("golang-hostscan/%v", vars.Version)
+	}
+
+	reqest.Header.Add("User-Agent", ua)
 	response, err := client.Do(reqest)
 	if response != nil{
 		defer response.Body.Close()

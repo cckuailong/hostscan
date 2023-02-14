@@ -11,4 +11,5 @@ var (
 	HostFile         = flag.String("D", "", "Hosts in file to test")
 	IpFile     	     = flag.String("I", "", "Nginx Ip in file to test")
 	OutFile			 = flag.String("O", "result.txt", "Output File")
+	IsRandUA	     = flag.Bool("U", false, "Open to send random UserAgent to avoid bot detection.")
 )

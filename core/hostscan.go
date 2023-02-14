@@ -1,76 +1,67 @@
 package core
 
 import (
-	"encoding/json"
+	"bufio"
 	"fmt"
+	"github.com/schollz/progressbar/v3"
 	"hostscan/elog"
-	"hostscan/models"
 	"hostscan/utils"
 	"hostscan/vars"
-	"regexp"
+	"io"
+	"os"
 	"strings"
 	"sync"
-
-	"github.com/schollz/progressbar/v3"
 )
 
-func getTitle(body string) string {
-	re := regexp.MustCompile(`<title>([\s\S]*?)</title>`)
-	match := re.FindStringSubmatch(body)
-	if match != nil && len(match) > 1 {
-		return strings.TrimSpace(match[1])
-	} else {
-		return ""
-	}
-}
 
-func getTasks() [][2]string {
-	tasks := [][2]string{}
-	for _, ip := range vars.Ips {
-		for _, scheme := range vars.Schemes {
-			uri := fmt.Sprintf("%s://%s", scheme, ip)
-			for _, host := range vars.Hosts {
-				tasks = append(tasks, [2]string{uri, host})
-			}
+func calcTaskTotal(taskType string) int{
+	var err error
+	var ipCnt, hostCnt, schemeCnt int
+	schemeCnt = len(vars.Schemes)
+	if taskType == "ip_host" {
+		ipCnt = 1
+		hostCnt = 1
+	}else if taskType == "ipfile_host" {
+		ipCnt, err = utils.LineCounter(*vars.IpFile)
+		if err != nil{
+			elog.Error(fmt.Sprintf("Get Lines Count[%s]: %v", *vars.IpFile, err))
+			return 0
 		}
-	}
-
-	return tasks
-}
-
-func goScan(taskChan chan [2]string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case task, ok := <-taskChan:
-			if !ok {
-				return
-			} else {
-				vars.ProcessBar.Add(1)
-				uri := task[0]
-				host := task[1]
-				body := utils.GetHttpBody(uri, host)
-				title := getTitle(body)
-				var result models.Result
-				result.Uri = uri
-				result.Host = host
-				result.Title = title
-				resultStr, _ := json.Marshal(result)
-				if len(title) > 0 {
-					elog.Notice(fmt.Sprintf("Uri: %s, Host: %s --> %s", uri, host, title))
-					utils.WriteLine(string(resultStr), *vars.OutFile)
-				} else {
-					elog.Warn(fmt.Sprintf("Uri: %s, Host: %s No title found", uri, host))
-				}
-			}
+		hostCnt = 1
+	}else if taskType == "ip_hostfile" {
+		ipCnt = 1
+		hostCnt, err = utils.LineCounter(*vars.HostFile)
+		if err != nil{
+			elog.Error(fmt.Sprintf("Get Lines Count[%s]: %v", *vars.HostFile, err))
+			return 0
 		}
+	}else if taskType == "ipfile_hostfile" {
+		ipCnt, err = utils.LineCounter(*vars.IpFile)
+		if err != nil{
+			elog.Error(fmt.Sprintf("Get Lines Count[%s]: %v", *vars.IpFile, err))
+			return 0
+		}
+		hostCnt, err = utils.LineCounter(*vars.HostFile)
+		if err != nil{
+			elog.Error(fmt.Sprintf("Get Lines Count[%s]: %v", *vars.HostFile, err))
+			return 0
+		}
+	}else{
+		return 0
 	}
+
+	return ipCnt * hostCnt * schemeCnt
 }
 
-func Scan() {
-	tasks := getTasks()
+func Scan(taskType string) error{
 	wg := sync.WaitGroup{}
-	totalTask := len(tasks)
+	totalTask := calcTaskTotal(taskType)
+
+	if totalTask == 0{
+		elog.Error(fmt.Sprintf("Get Lines Count: 0"))
+		return nil
+	}
+
 	vars.ProcessBar = progressbar.NewOptions(totalTask,
 		progressbar.OptionClearOnFinish(),
 		progressbar.OptionEnableColorCodes(false),
@@ -86,7 +77,7 @@ func Scan() {
 		}))
 
 	// 创建一个buffer为vars.ScanNum * 4的channel
-	taskChan := make(chan [2]string, *vars.Thread*4)
+	taskChan := make(chan Task, *vars.Thread*4)
 
 	// 创建vars.ThreadNum个协程
 	for i := 0; i < *vars.Thread; i++ {
@@ -94,10 +85,117 @@ func Scan() {
 		wg.Add(1)
 	}
 
-	// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
-	for _, task := range tasks {
-		taskChan <- task
+	if taskType == "ip_host" {
+		for _, scheme := range vars.Schemes {
+			task := Task{
+				Uri:  fmt.Sprintf("%s://%s", scheme, *vars.Ip),
+				Host: *vars.Host,
+			}
+			// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+			taskChan <- task
+		}
+	}else if taskType == "ipfile_host" {
+		ip_f, err := os.Open(*vars.IpFile)
+		defer ip_f.Close()
+		if err != nil {
+			return err
+		}
+		ip_buf := bufio.NewReader(ip_f)
+
+		for {
+			ip, err := ip_buf.ReadString(10)
+			ip = strings.TrimSpace(ip)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
+			}
+
+			for _, scheme := range vars.Schemes {
+				task := Task{
+					Uri:  fmt.Sprintf("%s://%s", scheme, ip),
+					Host: *vars.Host,
+				}
+				// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+				taskChan <- task
+			}
+		}
+	}else if taskType == "ip_hostfile" {
+		host_f, err := os.Open(*vars.HostFile)
+		defer host_f.Close()
+		if err != nil {
+			return err
+		}
+		host_buf := bufio.NewReader(host_f)
+		for {
+			host, err := host_buf.ReadString(10)
+			host = strings.TrimSpace(host)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
+			}
+
+			for _, scheme := range vars.Schemes {
+				task := Task{
+					Uri:  fmt.Sprintf("%s://%s", scheme, *vars.Ip),
+					Host: host,
+				}
+				// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+				taskChan <- task
+			}
+		}
+	}else if taskType == "ipfile_hostfile" {
+		ip_f, err := os.Open(*vars.IpFile)
+		defer ip_f.Close()
+		if err != nil {
+			return err
+		}
+		ip_buf := bufio.NewReader(ip_f)
+
+		host_f, err := os.Open(*vars.HostFile)
+		defer host_f.Close()
+		if err != nil {
+			return err
+		}
+		host_buf := bufio.NewReader(host_f)
+
+		for {
+			ip, err := ip_buf.ReadString(10)
+			ip = strings.TrimSpace(ip)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
+			}
+
+			for {
+				host, err := host_buf.ReadString(10)
+				host = strings.TrimSpace(host)
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return err
+				}
+
+				for _, scheme := range vars.Schemes {
+					task := Task{
+						Uri:  fmt.Sprintf("%s://%s", scheme, ip),
+						Host: host,
+					}
+					// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+					taskChan <- task
+				}
+			}
+		}
 	}
+
 	close(taskChan)
 	wg.Wait()
+
+	return nil
 }

@@ -1,22 +1,33 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"hostscan/elog"
-	"io/ioutil"
-	"strings"
 	"os"
 )
 
-func Readlines(filepath string) []string{
-	data, err := ioutil.ReadFile(filepath)
-	if err != nil{
-		elog.Error(fmt.Sprintf("Read File: %s [%s]", filepath, err))
-		return nil
+func LineCounter(filepath string) (int, error) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return 0, err
 	}
-	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	defer f.Close()
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
 
-	return lines
+	for {
+		switch c, err := f.Read(buf[:]); true {
+		case c < 0:
+			return 0, err
+		case c == 0: // EOF
+			return count, nil
+		case c > 0:
+			count += bytes.Count(buf[:c], lineSep)
+		}
+	}
+
 }
 
 func WriteLine(line string, outpath string){

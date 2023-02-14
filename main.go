@@ -1,20 +1,17 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"hostscan/core"
 	"hostscan/elog"
 	"hostscan/utils"
 	"hostscan/vars"
-	"flag"
-	"fmt"
 	"os"
 )
 
-
 func main(){
 	utils.Banner()
-
-	utils.SetUlimitMax()
 
 	flag.Parse()
 	if *vars.Version {
@@ -22,39 +19,32 @@ func main(){
 		return
 	}
 
-	if len(*vars.Ip) > 0 {
-		vars.Ips = append(vars.Ips, *vars.Ip)
-	}else if len(*vars.IpFile) > 0 {
-		tmp_ips := utils.Readlines(*vars.IpFile)
-		for _, tmp_ip := range tmp_ips{
-			vars.Ips = append(vars.Ips, tmp_ip)
-		}
-	}
+	utils.SetUlimitMax()
 
-	if len(vars.Ips) == 0 {
+	taskType := core.GetTaskType()
+	if taskType == "noip"{
 		elog.Error("No IP Found! Please use -i/-I to input single ip or ips in file")
 		return
-	}
-
-	if len(*vars.Host) > 0 {
-		vars.Hosts = append(vars.Hosts, *vars.Host)
-	}else if len(*vars.HostFile) > 0 {
-		tmp_hosts := utils.Readlines(*vars.HostFile)
-		for _, tmp_host := range tmp_hosts{
-			vars.Hosts = append(vars.Hosts, tmp_host)
-		}
-	}
-
-	if len(vars.Hosts) == 0 {
+	}else if taskType == "nohost"{
 		elog.Error("No Host Found! Please use -d/-D to input single host or hosts in file")
 		return
 	}
-	exist,_ := utils.PathExists(*vars.OutFile)
-	if exist{
-		_ = os.Remove(*vars.OutFile)
+
+	if len(*vars.OutFile) > 0{
+		exist,_ := utils.PathExists(*vars.OutFile)
+		if exist{
+			_ = os.Remove(*vars.OutFile)
+		}
 	}
 
-	core.Scan()
+	err := core.Scan(taskType)
+	if err != nil {
+		elog.Error(fmt.Sprintf("Scan Failed: %v", err))
+	}
 
-	vars.ProcessBar.Finish()
+	err = vars.ProcessBar.Finish()
+	if err != nil {
+		elog.Error(fmt.Sprintf("ProcessBar Close Failed: %v", err))
+		return
+	}
 }

@@ -19,24 +19,29 @@ How to access these hidden businesses? This requires the appearance of today's p
 ## Example
 
 ```
-./hostscan -d 127.0.0.1 -i 1.1.1.1
+./hostscan -d test.com -i 127.0.0.1:3333
 ```
 
 ```
-./hostscan -D input/hosts.txt -I input/ips.txt -O out/output.txt -T 5 -t 10
+./hostscan -D input/hosts.txt -I input/ips.txt -O out/output.txt -T 5 -t 10 -U
 ```
 
 ## Usage
 
 Please download the version of the corresponding platform in the release
 
+*Notice:*
+- Default thread only set to 3, if the network is ok, thread can be set up to rlimit.
+- Default UserAgent use `golang-hostscan/xxxx`, if you want to use random UA, please add param '-U'.
+- Support the large input file, Now there is no worry about OOM.
+
 ```
-./hostscan --help
+hostscan --help
   
 / )( \ /  \ / ___)(_  _)/ ___) / __) / _\ (  ( \
 ) __ ((  O )\___ \  )(  \___ \( (__ /    \/    /
 \_)(_/ \__/ (____/ (__) (____/ \___)\_/\_/\_)__)        
-Usage of ./main:
+Usage of hostscan:
   -D string
         Hosts in file to test
   -I string
@@ -45,6 +50,7 @@ Usage of ./main:
         Output File (default "result.txt")
   -T int
         Thread for Http connection. (default 3)
+  -U    Open to send random UserAgent to avoid bot detection.
   -d string
         Host to test
   -i string
@@ -57,7 +63,78 @@ Usage of ./main:
 
 ## Demo
 
-![demo](./images/demo.png)
+*Test the vultarget below*
+
+Host Collsion Success
+
+![demo](./images/demo1.png)
+
+Get status 400
+
+![demo](./images/demo2.png)
+
+## Test Vultarget
+
+### Docker
+
+```
+docker pull vultarget/host_collision
+docker run -it -p 3333:8080 --rm vultarget/host_collision
+```
+
+### Nginx Configuration
+
+#### Reverse proxy server (Core)
+
+```
+server {
+    listen  8080  default_server;
+    server_name _;
+    return 400;
+}
+server {
+    listen  8080;
+    server_name test.com;
+
+
+    location / {
+        proxy_pass http://127.0.0.1:80;
+        proxy_redirect off;
+        proxy_set_header Host $host:$server_port;
+        proxy_set_header X-Real-IP $remote_addr;
+            root    html;
+        index   index.html  index.htm;
+    }
+    access_log logs/test.com.log;
+}
+```
+
+The first server indicates that, when the host is empty, it will return 400 status
+
+The second server indicates that nginx will forward the service according to the incoming host, and the business accessed by test.com is the service on 127.0.0.1:80
+
+#### Example Web
+
+```
+server {
+    listen       80;
+    server_name  localhost;
+
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+```
+
+Simple Nginx Web Page.
 
 ## References
 
