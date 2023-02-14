@@ -138,4 +138,4 @@ Simple Nginx Web Page.
 
 ## References
 
-[Fofapro 的 Hosts_scan](https://github.com/fofapro/Hosts_scan)
+[Fofapro's Hosts_scan](https://github.com/fofapro/Hosts_scan)
