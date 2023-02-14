@@ -7,21 +7,41 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - env:
+  - id: build-linux
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
-      - windows
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go
+    binary: hostscan
+    ldflags: -s -w
+
+  - id: build-darwin
+    env:
+      - CGO_ENABLED=0
+    goos:
       - darwin
     goarch:
       - amd64
-      - arm
       - arm64
-      - 386
     main: ./main.go
+    binary: hostscan
+    ldflags: -s -w
 
-    ldflags:
-      - -s -w
+  - id: build-windows
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - 386
+      - amd64
+    main: ./main.go
+    binary: hostscan
+    ldflags: -s -w
 
 archives:
   - replacements:
