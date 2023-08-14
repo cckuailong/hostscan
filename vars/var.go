@@ -10,5 +10,5 @@ var (
 var ProcessBar *progressbar.ProgressBar
 
 const (
-	VersionInfo = "0.2.1"
+	VersionInfo = "0.2.2"
 )

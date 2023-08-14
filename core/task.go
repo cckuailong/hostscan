@@ -38,6 +38,12 @@ func goScan(taskChan chan Task, wg *sync.WaitGroup){
 			} else {
 				vars.ProcessBar.Add(1)
 				body := utils.GetHttpBody(task.Uri, task.Host)
+				if len(body) == 0{
+					if *vars.Verbose {
+						elog.Info(fmt.Sprintf("Uri: %s, Host: %s --> No Response Body", task.Uri, task.Host))
+					}
+					continue
+				}
 				title := getTitle(body)
 				var result models.Result
 				result.Uri = task.Uri
@@ -45,10 +51,12 @@ func goScan(taskChan chan Task, wg *sync.WaitGroup){
 				result.Title = title
 				resultStr, _ := json.Marshal(result)
 				if len(title) > 0{
-					elog.Notice(fmt.Sprintf("Uri: %s, Host: %s --> %s", task.Uri, task.Host, title))
+					elog.Notice(fmt.Sprintf("Uri: %s, Host: %s <==> %s", task.Uri, task.Host, title))
 					utils.WriteLine(string(resultStr), *vars.OutFile)
 				}else{
-					elog.Warn(fmt.Sprintf("Uri: %s, Host: %s No title found", task.Uri, task.Host))
+					if *vars.Verbose{
+						elog.Warn(fmt.Sprintf("Uri: %s, Host: %s --> No title found", task.Uri, task.Host))
+					}
 				}
 			}
 		}

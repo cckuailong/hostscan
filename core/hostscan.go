@@ -14,12 +14,12 @@ import (
 )
 
 
-func calcTaskTotal(taskType string) int{
+func calcTaskTotal(taskType string, SingleIpCnt int) int{
 	var err error
 	var ipCnt, hostCnt, schemeCnt int
 	schemeCnt = len(vars.Schemes)
 	if taskType == "ip_host" {
-		ipCnt = 1
+		ipCnt = SingleIpCnt
 		hostCnt = 1
 	}else if taskType == "ipfile_host" {
 		ipCnt, err = utils.LineCounter(*vars.IpFile)
@@ -29,7 +29,7 @@ func calcTaskTotal(taskType string) int{
 		}
 		hostCnt = 1
 	}else if taskType == "ip_hostfile" {
-		ipCnt = 1
+		ipCnt = SingleIpCnt
 		hostCnt, err = utils.LineCounter(*vars.HostFile)
 		if err != nil{
 			elog.Error(fmt.Sprintf("Get Lines Count[%s]: %v", *vars.HostFile, err))
@@ -50,12 +50,23 @@ func calcTaskTotal(taskType string) int{
 		return 0
 	}
 
-	return ipCnt * hostCnt * schemeCnt
+	totalTask := ipCnt * hostCnt * schemeCnt
+
+	elog.Info(fmt.Sprintf("Total Task: %d   ||   Ip: %d, Host: %d, Scheme:%d", totalTask, ipCnt, hostCnt, schemeCnt))
+
+	return totalTask
 }
 
 func Scan(taskType string) error{
 	wg := sync.WaitGroup{}
-	totalTask := calcTaskTotal(taskType)
+	ip_list := []string{}
+	if strings.Contains(*vars.Ip, "/"){
+		ip_list = HandleIpRange(*vars.Ip)
+	}else{
+		ip_list = append(ip_list, *vars.Ip)
+	}
+
+	totalTask := calcTaskTotal(taskType, len(ip_list))
 
 	if totalTask == 0{
 		elog.Error(fmt.Sprintf("Get Lines Count: 0"))
@@ -86,14 +97,20 @@ func Scan(taskType string) error{
 	}
 
 	if taskType == "ip_host" {
-		for _, scheme := range vars.Schemes {
-			task := Task{
-				Uri:  fmt.Sprintf("%s://%s", scheme, *vars.Ip),
-				Host: *vars.Host,
+		for _,ip := range ip_list{
+			for _, scheme := range vars.Schemes {
+				handled_set := HandleCustomPorts(*vars.Host, ip)
+				for _,item := range handled_set{
+					task := Task{
+						Uri:  fmt.Sprintf("%s://%s", scheme, item.IP),
+						Host: item.Host,
+					}
+					// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+					taskChan <- task
+				}
 			}
-			// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
-			taskChan <- task
 		}
+
 	}else if taskType == "ipfile_host" {
 		ip_f, err := os.Open(*vars.IpFile)
 		defer ip_f.Close()
@@ -113,12 +130,15 @@ func Scan(taskType string) error{
 			}
 
 			for _, scheme := range vars.Schemes {
-				task := Task{
-					Uri:  fmt.Sprintf("%s://%s", scheme, ip),
-					Host: *vars.Host,
+				handled_set := HandleCustomPorts(*vars.Host, ip)
+				for _,item := range handled_set{
+					task := Task{
+						Uri:  fmt.Sprintf("%s://%s", scheme, item.IP),
+						Host: item.Host,
+					}
+					// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+					taskChan <- task
 				}
-				// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
-				taskChan <- task
 			}
 		}
 	}else if taskType == "ip_hostfile" {
@@ -137,15 +157,20 @@ func Scan(taskType string) error{
 				}
 				return err
 			}
-
-			for _, scheme := range vars.Schemes {
-				task := Task{
-					Uri:  fmt.Sprintf("%s://%s", scheme, *vars.Ip),
-					Host: host,
+			for _,ip := range ip_list{
+				for _, scheme := range vars.Schemes {
+					handled_set := HandleCustomPorts(host, ip)
+					for _,item := range handled_set{
+						task := Task{
+							Uri:  fmt.Sprintf("%s://%s", scheme, item.IP),
+							Host: item.Host,
+						}
+						// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+						taskChan <- task
+					}
 				}
-				// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
-				taskChan <- task
 			}
+
 		}
 	}else if taskType == "ipfile_hostfile" {
 		ip_f, err := os.Open(*vars.IpFile)
@@ -183,12 +208,15 @@ func Scan(taskType string) error{
 				}
 
 				for _, scheme := range vars.Schemes {
-					task := Task{
-						Uri:  fmt.Sprintf("%s://%s", scheme, ip),
-						Host: host,
+					handled_set := HandleCustomPorts(host, ip)
+					for _,item := range handled_set{
+						task := Task{
+							Uri:  fmt.Sprintf("%s://%s", scheme, item.IP),
+							Host: item.Host,
+						}
+						// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
+						taskChan <- task
 					}
-					// 生产者，不断地往taskChan channel发送数据，直到channel阻塞
-					taskChan <- task
 				}
 			}
 		}

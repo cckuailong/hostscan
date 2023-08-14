@@ -44,6 +44,9 @@ hostscan --help
 Usage of hostscan:
   -D string
         Hosts in file to test
+  -F string
+        Filter result with List of Response Status Code. 
+        Example: 200,201,302
   -I string
         Nginx Ip in file to test
   -O string
@@ -51,10 +54,16 @@ Usage of hostscan:
   -T int
         Thread for Http connection. (default 3)
   -U    Open to send random UserAgent to avoid bot detection.
+  -V    Output All scan Info. 
+        Default is false, only output the result with title.
   -d string
         Host to test
   -i string
-        Nginx IP
+        Nginx IP. 
+        Example: 1.1.1.1 or 1.2.3.4/24
+  -p string
+        Port List of Nginx IP. If the flag is set, hostscan will ignore the port in origin IP input. 
+        Example: 80,8080,8000-8009
   -t int
         Timeout for Http connection. (default 5)
   -v    Show hostscan version
@@ -135,6 +144,16 @@ server {
 ```
 
 Simple Nginx Web Page.
+
+## ChangeLog
+
+v0.2.2
+- The -i option supports IP range scanning, such as 1.2.3.4/24
+- The -p option supports custom scan ports, such as 80,8000-8009
+- The -V option outputs all scan information, disabled by default, only outputting results
+- The -F option help you to filter the result with http status code
+- Fixed a bug where the progress bar would still be displayed when no parameters were given
+- Added some informative output
 
 ## References
 

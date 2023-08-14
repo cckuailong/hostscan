@@ -48,6 +48,9 @@ hostscan --help
 Usage of hostscan:
   -D string
         Hosts in file to test
+  -F string
+        Filter result with List of Response Status Code. 
+        Example: 200,201,302
   -I string
         Nginx Ip in file to test
   -O string
@@ -55,10 +58,16 @@ Usage of hostscan:
   -T int
         Thread for Http connection. (default 3)
   -U    Open to send random UserAgent to avoid bot detection.
+  -V    Output All scan Info. 
+        Default is false, only output the result with title.
   -d string
         Host to test
   -i string
-        Nginx IP
+        Nginx IP. 
+        Example: 1.1.1.1 or 1.2.3.4/24
+  -p string
+        Port List of Nginx IP. If the flag is set, hostscan will ignore the port in origin IP input. 
+        Example: 80,8080,8000-8009
   -t int
         Timeout for Http connection. (default 5)
   -v    Show hostscan version
@@ -139,6 +148,16 @@ server {
 ```
 
 简单的nginx初始页面
+
+## ChangeLog
+
+v0.2.2
+- -i选项支持IP段扫描，1.2.3.4/24
+- -p选项支持自定义扫描端口，如 80,8000-8009
+- -V选项输出所有扫描信息，默认关闭，只输出结果
+- -F选项用于根据http响应状态码筛选结果
+- 修复无参数时，进度条也会显示的bug
+- 增加一些提示性输出
 
 ## 参考链接
 
