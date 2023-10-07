@@ -147,6 +147,9 @@ Simple Nginx Web Page.
 
 ## ChangeLog
 
+v0.2.3
+- Fix the bug of wrong calculation of file line number
+
 v0.2.2
 - The -i option supports IP range scanning, such as 1.2.3.4/24
 - The -p option supports custom scan ports, such as 80,8000-8009

@@ -13,18 +13,24 @@ func LineCounter(filepath string) (int, error) {
 		return 0, err
 	}
 	defer f.Close()
-	buf := make([]byte, 32*1024)
 	count := 0
 	lineSep := []byte{'\n'}
+	var last_buf []byte
 
 	for {
+		buf := make([]byte, 32*1024)
 		switch c, err := f.Read(buf[:]); true {
 		case c < 0:
 			return 0, err
 		case c == 0: // EOF
+			last_buf = bytes.Trim(last_buf, "\x00")
+			if last_buf[len(last_buf)-1] != lineSep[0]{
+				count += 1
+			}
 			return count, nil
 		case c > 0:
 			count += bytes.Count(buf[:c], lineSep)
+			last_buf = buf
 		}
 	}
 
